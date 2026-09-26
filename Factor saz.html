@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>فاکتور ساز</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7; --card:#ffffff; --text:#1c1e21; --muted:#6b7280;
+  --accent:#0f766e; --accent-d:#0d5f58; --border:#e5e7eb; --danger:#dc2626;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#111315; --card:#1a1d21; --text:#f0f1f3; --muted:#9aa0a8; --border:#2b2f34; --accent:#2dd4bf; --accent-d:#14b8a6; }
+}
+:root[data-theme="dark"]{ --bg:#111315; --card:#1a1d21; --text:#f0f1f3; --muted:#9aa0a8; --border:#2b2f34; --accent:#2dd4bf; --accent-d:#14b8a6; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); height:100%; }
+*{ box-sizing:border-box; }
+body{
+  margin:0; min-height:100%; background:var(--bg); color:var(--text);
+  font-family:"Vazirmatn", Tahoma, sans-serif; padding:14px;
+}
+h1{ font-size:19px; margin:4px 0 14px; font-weight:900; }
+h2{ font-size:15px; margin:0 0 10px; font-weight:700; color:var(--accent); }
+.tabs{ display:flex; gap:6px; margin-bottom:14px; position:sticky; top:env(safe-area-inset-top,0px); background:var(--bg); padding:6px 0; z-index:5; }
+.tab{ flex:1; text-align:center; padding:9px 4px; border-radius:10px; background:var(--card); border:1px solid var(--border); font-size:13px; cursor:pointer; font-weight:700; color:var(--muted); }
+.tab.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:12px; }
+label{ display:block; font-size:12px; color:var(--muted); margin:8px 0 4px; }
+input,select{
+  width:100%; padding:9px 10px; border-radius:9px; border:1px solid var(--border);
+  background:var(--bg); color:var(--text); font-family:inherit; font-size:14px;
+}
+button{
+  font-family:inherit; border:none; border-radius:9px; padding:10px 14px;
+  font-size:14px; font-weight:700; cursor:pointer;
+}
+.btn-main{ background:var(--accent); color:#fff; width:100%; margin-top:10px; }
+.btn-ghost{ background:transparent; border:1px solid var(--border); color:var(--text); }
+.btn-danger{ background:transparent; color:var(--danger); border:1px solid var(--danger); padding:5px 9px; font-size:12px; }
+.row{ display:flex; gap:8px; }
+.row > *{ flex:1; }
+.item-line{ display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; gap:6px; }
+.item-line:last-child{ border-bottom:none; }
+.pname{ font-weight:700; flex:1; }
+.pmeta{ color:var(--muted); font-size:11px; }
+.overflow{ overflow-x:auto; }
+table{ width:100%; border-collapse:collapse; font-size:13px; }
+th,td{ padding:8px 6px; text-align:right; border-bottom:1px solid var(--border); }
+th{ color:var(--muted); font-weight:700; font-size:12px; }
+.total-box{ display:flex; justify-content:space-between; align-items:center; padding:12px 0 4px; font-weight:900; font-size:16px; }
+.qtybtn{ width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:16px; }
+.hint{ color:var(--muted); font-size:12px; text-align:center; padding:10px 0; }
+#invoice-print{ display:none; }
+@media print{
+  body *{ visibility:hidden; }
+  #invoice-print, #invoice-print *{ visibility:visible; }
+  #invoice-print{ display:block; position:absolute; top:0; right:0; width:100%; padding:20px; }
+}
+</style>
+</head>
+<body>
+
+<h1>🧾 فاکتور ساز</h1>
+
+<div class="tabs">
+  <div class="tab active" data-tab="invoice">فاکتور جدید</div>
+  <div class="tab" data-tab="history">سوابق فاکتورها</div>
+  <div class="tab" data-tab="products">لیست کالاها</div>
+  <div class="tab" data-tab="settings">مشخصات کسب‌وکار</div>
+</div>
+
+<!-- INVOICE TAB -->
+<div id="tab-invoice">
+  <div class="card">
+    <h2>مشخصات مشتری</h2>
+    <div class="row">
+      <div><label>نام مشتری</label><input id="custName" placeholder="مثلاً آقای رضایی"></div>
+      <div><label>شماره تلفن</label><input id="custPhone" placeholder="0912..." inputmode="tel"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>افزودن با صدا</h2>
+    <button class="btn-main" id="voiceBtn" style="margin-top:0;">🎤 بگو مثلاً «درب اتوماتیک دو تا»</button>
+    <div id="voiceStatus" class="hint" style="display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h2>افزودن دستی</h2>
+    <label>انتخاب کالا</label>
+    <select id="productSelect"></select>
+    <div class="row" style="align-items:end;margin-top:8px;">
+      <div><label>تعداد / متر</label><input id="qtyInput" type="number" min="0" step="0.1" value="1"></div>
+      <div style="flex:0 0 auto;align-self:end;"><button class="btn-ghost" id="addItemBtn" style="height:38px;">➕ افزودن</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>اقلام فاکتور</h2>
+    <div id="invoiceItems"><p class="hint">هنوز کالایی اضافه نشده</p></div>
+    <div class="total-box"><span>جمع کل</span><span id="grandTotal">۰ تومان</span></div>
+    <button class="btn-main" id="printBtn">🖨️ چاپ / ذخیره PDF</button>
+    <button class="btn-ghost" id="clearBtn" style="width:100%;margin-top:8px;">پاک کردن فاکتور</button>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div id="tab-history" style="display:none;">
+  <div class="card">
+    <h2>سوابق فاکتورها (تا ۲۰۰ فاکتور آخر)</h2>
+    <div id="historyList"><p class="hint">هنوز فاکتوری ثبت نشده</p></div>
+  </div>
+</div>
+
+<!-- PRODUCTS TAB -->
+<div id="tab-products" style="display:none;">
+  <div class="card">
+    <h2>افزودن / ویرایش کالا</h2>
+    <label>نام کالا</label>
+    <input id="pName" placeholder="مثلاً درب اتوماتیک شیشه‌ای">
+    <div class="row">
+      <div><label>قیمت واحد (تومان)</label><input id="pPrice" type="number" placeholder="۱۵۰۰۰۰۰"></div>
+      <div><label>واحد</label><input id="pUnit" placeholder="عدد / متر / ست"></div>
+    </div>
+    <button class="btn-main" id="saveProductBtn">ذخیره کالا</button>
+  </div>
+  <div class="card">
+    <h2>کالاهای ثبت‌شده</h2>
+    <div id="productList"><p class="hint">هنوز کالایی ثبت نشده</p></div>
+  </div>
+</div>
+
+<!-- SETTINGS TAB -->
+<div id="tab-settings" style="display:none;">
+  <div class="card">
+    <h2>مشخصات کسب‌وکار (بالای فاکتور)</h2>
+    <label>نام کسب‌وکار</label>
+    <input id="bizName" placeholder="مثلاً درب اتوماتیک و پارتیشن ...">
+    <label>آدرس / تهران</label>
+    <input id="bizAddress" placeholder="تهران، ...">
+    <label>شماره تماس</label>
+    <input id="bizPhone" placeholder="021... / 0912...">
+    <button class="btn-main" id="saveBizBtn">ذخیره مشخصات</button>
+  </div>
+</div>
+
+<!-- PRINT TEMPLATE -->
+<div id="invoice-print">
+  <div style="display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:10px;">
+    <div>
+      <div style="font-weight:900;font-size:18px;" id="pr-biz"></div>
+      <div style="font-size:12px;" id="pr-addr"></div>
+      <div style="font-size:12px;" id="pr-phone"></div>
+    </div>
+    <div style="text-align:left;font-size:12px;">
+      <div>شماره فاکتور: <span id="pr-num"></span></div>
+      <div>تاریخ: <span id="pr-date"></span></div>
+    </div>
+  </div>
+  <div style="margin:12px 0;font-size:13px;">
+    <div>مشتری: <span id="pr-custname"></span></div>
+    <div>تلفن: <span id="pr-custphone"></span></div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>شرح کالا</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th></tr></thead>
+    <tbody id="pr-rows"></tbody>
+  </table>
+  <div style="text-align:left;font-weight:900;font-size:16px;margin-top:10px;">جمع کل: <span id="pr-total"></span></div>
+</div>
+
+<script>
+function safeGet(k, def){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
+function safeSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+let products = safeGet('inv_products', []);
+let biz = safeGet('inv_biz', {name:'', address:'', phone:''});
+let currentItems = safeGet('inv_current', []);
+let invoiceCounter = safeGet('inv_counter', 1000);
+let history = safeGet('inv_history', []);
+
+function renderHistory(){
+  const box = document.getElementById('historyList');
+  if(history.length===0){ box.innerHTML = '<p class="hint">هنوز فاکتوری ثبت نشده</p>'; return; }
+  box.innerHTML = '';
+  history.slice().reverse().forEach(h=>{
+    const div = document.createElement('div');
+    div.className = 'item-line';
+    div.innerHTML = `<div><div class="pname">فاکتور #${h.num} — ${h.date}</div>
+      <div class="pmeta">${h.custName || 'بدون نام'} ${h.custPhone ? ('| ' + h.custPhone) : ''} — ${h.itemCount} قلم</div></div>
+      <div style="font-weight:700;">${h.total}</div>`;
+    box.appendChild(div);
+  });
+}
+
+function fmt(n){ return Math.round(n).toLocaleString('fa-IR') + ' تومان'; }
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['invoice','history','products','settings'].forEach(name=>{
+      document.getElementById('tab-'+name).style.display = (name===t.dataset.tab)?'block':'none';
+    });
+  });
+});
+
+function renderProductSelect(){
+  const sel = document.getElementById('productSelect');
+  sel.innerHTML = '';
+  if(products.length===0){
+    sel.innerHTML = '<option value="">ابتدا در تب «لیست کالاها» کالا ثبت کنید</option>';
+    return;
+  }
+  products.forEach((p,i)=>{
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = p.name + ' — ' + fmt(p.price) + ' / ' + p.unit;
+    sel.appendChild(o);
+  });
+}
+
+function renderProductList(){
+  const box = document.getElementById('productList');
+  if(products.length===0){ box.innerHTML = '<p class="hint">هنوز کالایی ثبت نشده</p>'; return; }
+  box.innerHTML = '';
+  products.forEach((p,i)=>{
+    const div = document.createElement('div');
+    div.className = 'item-line';
+    div.innerHTML = `<div><div class="pname">${p.name}</div><div class="pmeta">${fmt(p.price)} / ${p.unit}</div></div>
+      <button class="btn-danger" data-i="${i}">حذف</button>`;
+    div.querySelector('button').addEventListener('click', ()=>{
+      products.splice(i,1); safeSet('inv_products', products); renderProductList(); renderProductSelect();
+    });
+    box.appendChild(div);
+  });
+}
+
+document.getElementById('saveProductBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('pName').value.trim();
+  const price = parseFloat(document.getElementById('pPrice').value);
+  const unit = document.getElementById('pUnit').value.trim() || 'عدد';
+  if(!name || !price){ alert('نام و قیمت را وارد کنید'); return; }
+  products.push({name, price, unit});
+  safeSet('inv_products', products);
+  document.getElementById('pName').value=''; document.getElementById('pPrice').value=''; document.getElementById('pUnit').value='';
+  renderProductList(); renderProductSelect();
+});
+
+document.getElementById('saveBizBtn').addEventListener('click', ()=>{
+  biz = {
+    name: document.getElementById('bizName').value.trim(),
+    address: document.getElementById('bizAddress').value.trim(),
+    phone: document.getElementById('bizPhone').value.trim()
+  };
+  safeSet('inv_biz', biz);
+  alert('ذخیره شد');
+});
+
+function renderInvoiceItems(){
+  const box = document.getElementById('invoiceItems');
+  if(currentItems.length===0){ box.innerHTML = '<p class="hint">هنوز کالایی اضافه نشده</p>'; document.getElementById('grandTotal').textContent='۰ تومان'; return; }
+  box.innerHTML = '';
+  let total = 0;
+  currentItems.forEach((it,i)=>{
+    const lineTotal = it.qty * it.price;
+    total += lineTotal;
+    const div = document.createElement('div');
+    div.className = 'item-line';
+    div.innerHTML = `<div><div class="pname">${it.name}</div><div class="pmeta">${it.qty} × ${fmt(it.price)} = ${fmt(lineTotal)}</div></div>
+      <button class="btn-danger" data-i="${i}">حذف</button>`;
+    div.querySelector('button').addEventListener('click', ()=>{
+      currentItems.splice(i,1); safeSet('inv_current', currentItems); renderInvoiceItems();
+    });
+    box.appendChild(div);
+  });
+  document.getElementById('grandTotal').textContent = fmt(total);
+}
+
+// --- Voice entry ---
+const faNumberWords = {
+  'یک':1,'یه':1,'یک تا':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'هفت':7,'هشت':8,'نه':9,'ده':10,
+  'یازده':11,'دوازده':12,'سیزده':13,'چهارده':14,'پانزده':15,'شانزده':16,'هفده':17,'هجده':18,'نوزده':19,'بیست':20
+};
+function normalize(s){ return (s||'').toString().trim().toLowerCase().replace(/[\u200c]/g,' ').replace(/\s+/g,' '); }
+
+function extractQuantity(text){
+  const digitMatch = text.match(/(\d+(\.\d+)?)/);
+  if(digitMatch) return parseFloat(digitMatch[1]);
+  const norm = normalize(text);
+  for(const word in faNumberWords){
+    if(norm.includes(word)) return faNumberWords[word];
+  }
+  return 1;
+}
+
+function matchProduct(text){
+  const norm = normalize(text);
+  let best = null, bestScore = 0;
+  products.forEach((p,i)=>{
+    const words = normalize(p.name).split(' ').filter(w=>w.length>1);
+    let score = 0;
+    words.forEach(w=>{ if(norm.includes(w)) score++; });
+    if(score > bestScore){ bestScore = score; best = i; }
+  });
+  return bestScore > 0 ? best : null;
+}
+
+function setVoiceStatus(msg){
+  const el = document.getElementById('voiceStatus');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+function handleVoiceResult(transcript){
+  setVoiceStatus('شنیده شد: «' + transcript + '»');
+  if(products.length===0){
+    setVoiceStatus('ابتدا در تب «لیست کالاها» چند کالا ثبت کنید.');
+    return;
+  }
+  const idx = matchProduct(transcript);
+  if(idx===null){
+    setVoiceStatus('«' + transcript + '» — کالای مشابهی در لیست پیدا نشد. دستی اضافه کنید.');
+    return;
+  }
+  const qty = extractQuantity(transcript);
+  const p = products[idx];
+  currentItems.push({name:p.name, unit:p.unit, price:p.price, qty});
+  safeSet('inv_current', currentItems);
+  renderInvoiceItems();
+  setVoiceStatus('✅ اضافه شد: ' + p.name + ' × ' + qty);
+}
+
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+document.getElementById('voiceBtn').addEventListener('click', ()=>{
+  if(!SpeechRec){
+    setVoiceStatus('مرورگر شما از تشخیص گفتار پشتیبانی نمی‌کند. لطفاً دستی اضافه کنید یا از کروم استفاده کنید.');
+    return;
+  }
+  try{
+    const rec = new SpeechRec();
+    rec.lang = 'fa-IR';
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    setVoiceStatus('🎤 در حال گوش دادن... حالا بگویید');
+    rec.start();
+    rec.onresult = (e)=>{
+      const transcript = e.results[0][0].transcript;
+      handleVoiceResult(transcript);
+    };
+    rec.onerror = (e)=>{
+      setVoiceStatus('خطا در تشخیص گفتار (' + e.error + '). دوباره تلاش کنید یا دستی وارد کنید.');
+    };
+  }catch(err){
+    setVoiceStatus('امکان استفاده از میکروفون نبود. دستی اضافه کنید.');
+  }
+});
+
+document.getElementById('addItemBtn').addEventListener('click', ()=>{
+  const sel = document.getElementById('productSelect');
+  const idx = sel.value;
+  if(idx==='' || products.length===0){ alert('ابتدا کالایی ثبت و انتخاب کنید'); return; }
+  const qty = parseFloat(document.getElementById('qtyInput').value) || 1;
+  const p = products[idx];
+  currentItems.push({name:p.name, unit:p.unit, price:p.price, qty});
+  safeSet('inv_current', currentItems);
+  renderInvoiceItems();
+});
+
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  if(confirm('فاکتور فعلی پاک شود؟')){
+    currentItems = []; safeSet('inv_current', currentItems); renderInvoiceItems();
+  }
+});
+
+document.getElementById('printBtn').addEventListener('click', ()=>{
+  if(currentItems.length===0){ alert('فاکتور خالی است'); return; }
+  document.getElementById('pr-biz').textContent = biz.name || '—';
+  document.getElementById('pr-addr').textContent = biz.address || '';
+  document.getElementById('pr-phone').textContent = biz.phone ? ('تلفن: ' + biz.phone) : '';
+  document.getElementById('pr-num').textContent = invoiceCounter;
+  document.getElementById('pr-date').textContent = new Date().toLocaleDateString('fa-IR');
+  document.getElementById('pr-custname').textContent = document.getElementById('custName').value || '—';
+  document.getElementById('pr-custphone').textContent = document.getElementById('custPhone').value || '—';
+  const rows = document.getElementById('pr-rows');
+  rows.innerHTML = '';
+  let total = 0;
+  currentItems.forEach((it,i)=>{
+    const lt = it.qty*it.price; total += lt;
+    rows.innerHTML += `<tr><td>${i+1}</td><td>${it.name}</td><td>${it.qty} ${it.unit}</td><td>${fmt(it.price)}</td><td>${fmt(lt)}</td></tr>`;
+  });
+  document.getElementById('pr-total').textContent = fmt(total);
+  history.push({
+    num: invoiceCounter,
+    date: new Date().toLocaleDateString('fa-IR'),
+    custName: document.getElementById('custName').value || '',
+    custPhone: document.getElementById('custPhone').value || '',
+    itemCount: currentItems.length,
+    total: fmt(total)
+  });
+  if(history.length > 200) history = history.slice(history.length - 200);
+  safeSet('inv_history', history);
+  renderHistory();
+  invoiceCounter++; safeSet('inv_counter', invoiceCounter);
+  window.print();
+});
+
+// init settings fields
+document.getElementById('bizName').value = biz.name || '';
+document.getElementById('bizAddress').value = biz.address || '';
+document.getElementById('bizPhone').value = biz.phone || '';
+
+renderProductSelect();
+renderProductList();
+renderInvoiceItems();
+renderHistory();
+</script>
+</body>
+</html>
